@@ -6,8 +6,9 @@
       <title>Konva Free Drawing Demo</title>
       <style>
          body {
+            font-size: 20px;
             margin: 0;
-            padding: 0;
+            padding: 10px;
             overflow: hidden;
             background-color: #f0f0f0;
          }
@@ -15,22 +16,26 @@
    </head>
 
    <body>
-      Tool:
-      <select id="tool">
-         <option value="brush">Brush</option>
-         <option value="eraser">Eraser</option>
-      </select>
-      Brush size:
-      <select id="size">
-         <option value="5">5</option>
-         <option value="10">10</option>
-         <option value="20">20</option>
-         <option value="50">50</option>
-      </select>
+      <div>
+         Tool:
+         <select id="tool">
+            <option value="brush">Brush</option>
+            <option value="eraser">Eraser</option>
+         </select>
+      </div>
+      <div>
+         Brush size:
+         <select id="size">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+         </select>
+      </div>
       <div id="container"></div>
       <script>
          var width = window.innerWidth;
-         var height = window.innerHeight - 25;
+         var height = window.innerHeight - 100;
 
          // first we need Konva core things: stage and layer
          var stage = new Konva.Stage({
