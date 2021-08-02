@@ -1,75 +1,97 @@
 <!DOCTYPE html>
 <html>
    <head>
+      <link
+         href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+         rel="stylesheet"
+         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+         crossorigin="anonymous"
+      />
       <script src="https://unpkg.com/konva@8.1.1/konva.min.js"></script>
       <meta charset="utf-8" />
       <title>Konva Free Drawing Demo</title>
       <style>
-         body {
-            font-size: 20px;
-            margin: 0;
-            padding: 10px;
-            overflow: hidden;
-            background-color: #f0f0f0;
+         #container {
+            border: solid 2px black;
          }
       </style>
    </head>
 
-   <body>
-      <div>
-         Tool:
-         <select id="tool">
-            <option value="brush">Brush</option>
-            <option value="eraser">Eraser</option>
-         </select>
+   <body class="py-2 m-0 d-flex flex-column vh-100">
+      <div class="mx-3 h5 d-flex">
+         <div class="mx-3">
+            Tool:
+            <select id="tool" class="form-select">
+               <option value="brush">Brush</option>
+               <option value="eraser">Eraser</option>
+            </select>
+         </div>
+         <div class="mx-3">
+            Brush size:
+            <select id="size" class="form-select">
+               <option value="5">5</option>
+               <option value="10">10</option>
+               <option value="20">20</option>
+               <option value="50">50</option>
+            </select>
+         </div>
+         <div class="mx-3">
+            <div>Lines count</div>
+            <input type="number" id="lines" value="6" class="form-control" min="1" max="20" />
+         </div>
+         <div class="mx-3">
+            <br />
+            <button class="btn btn-danger" onclick="restart()">Clear</button>
+         </div>
       </div>
-      <div>
-         Brush size:
-         <select id="size">
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-         </select>
-      </div>
-      <div id="container"></div>
+      <div id="container" class="border flex-grow-1 mx-3"></div>
       <script>
-         var width = window.innerWidth;
-         var height = window.innerHeight - 100;
-
          // first we need Konva core things: stage and layer
+         const width = document.querySelector('#container').offsetWidth;
+         const height = document.querySelector('#container').offsetHeight;
+         const xc = width / 2;
+         const yc = height / 2;
+         let isPaint = false;
+         let mode = 'brush';
+         const lines = [20];
+
          var stage = new Konva.Stage({
             container: 'container',
             width: width,
             height: height,
          });
 
-         var layer = new Konva.Layer();
+         const layer = new Konva.Layer();
          stage.add(layer);
 
-         var isPaint = false;
-         var mode = 'brush';
-         var lastLine;
-         var lines = [4];
+         function restart() {
+            layer.children.length = 0;
+            layer.draw();
+         }
 
          stage.on('mousedown touchstart', function (e) {
             isPaint = true;
-            var pos = stage.getPointerPosition();
+            const pos = stage.getPointerPosition();
             //lastLine = drawLine(pos.x, pos.y);
-            lines[0] = drawLine(pos.x, pos.y);
-            lines[1] = drawLine(width - pos.x, pos.y);
-            lines[2] = drawLine(pos.x, height - pos.y);
-            lines[3] = drawLine(width - pos.x, height - pos.y);
-            for (var i = 0; i < 4; i++) layer.add(lines[i]);
+            let angle = getAngle(pos.x, pos.y);
+            const length = getLength(pos.x, pos.y);
+
+            for (var i = 0; i < linesCount(); i++) {
+               const point = adjustAngle(length, angle);
+               lines[i] = drawLine(point);
+               layer.add(lines[i]);
+               angle += (2 * Math.PI) / linesCount();
+            }
+
             //layer.add(lastLine);
          });
 
-         function drawLine(x, y) {
+         function drawLine(point) {
             return new Konva.Line({
                stroke: '#df4b26',
                strokeWidth: document.getElementById('size').value,
                globalCompositeOperation: mode === 'brush' ? 'source-over' : 'destination-out',
-               points: [x, y],
+               points: point,
             });
          }
 
@@ -84,18 +106,46 @@
             }
 
             const pos = stage.getPointerPosition();
-            var newLines = [4];
-            newLines[0] = lines[0].points().concat([pos.x, pos.y]);
-            newLines[1] = lines[1].points().concat([width - pos.x, pos.y]);
-            newLines[2] = lines[2].points().concat([pos.x, height - pos.y]);
-            newLines[3] = lines[3].points().concat([width - pos.x, height - pos.y]);
-            for (var i = 0; i < 4; i++) lines[i].points(newLines[i]);
+            const newLines = [20];
+
+            let angle = getAngle(pos.x, pos.y);
+            const length = getLength(pos.x, pos.y);
+
+            for (var i = 0; i < linesCount(); i++) {
+               const point = adjustAngle(length, angle);
+               newLines[i] = lines[i].points().concat(point);
+               lines[i].points(newLines[i]);
+               angle += (2 * Math.PI) / linesCount();
+            }
          });
 
          var select = document.getElementById('tool');
          select.addEventListener('change', function () {
             mode = select.value;
          });
+
+         function linesCount() {
+            return document.getElementById('lines').value;
+         }
+
+         function getAngle(x, y) {
+            var dx = x - xc;
+            const cos = dx / getLength(x, y);
+            const acos = Math.acos(cos);
+            return y - yc > 0 ? acos : -acos;
+         }
+
+         function adjustAngle(l, angle) {
+            const x = Math.cos(angle) * l + xc;
+            const y = Math.sin(angle) * l + yc;
+            return [x, y];
+         }
+
+         function getLength(x, y) {
+            var dx = x - xc;
+            var dy = y - yc;
+            return Math.sqrt(dx * dx + dy * dy);
+         }
       </script>
    </body>
 </html>
